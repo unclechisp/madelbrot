@@ -1,0 +1,41 @@
+================================================================================
+                    WEBGL FRACTAL EXPLORER - QUICK START GUIDE
+================================================================================
+
+HOW TO START:
+  Double-click the file named:
+  RUN_FRACTAL_EXPLORER.bat
+
+  That's all! The launcher will automatically:
+  1. Detect your available Python or Node.js runtime.
+  2. Launch the local web server.
+  3. Open the fractal explorer in your default web browser.
+
+LOCAL URL:
+  http://localhost:8000
+  (If port 8000 is already in use by another program, the launcher will
+  automatically assign the next available port, e.g. 8001).
+
+HOW TO STOP:
+  Go to the console window created when you ran the launcher and press:
+  Ctrl + C
+  (or simply close the console window).
+
+KEYBOARD CONTROLS IN THE BROWSER:
+  - Drag mouse / Arrow keys : Pan across the fractal
+  - Scroll wheel / + / -    : Zoom in / Zoom out
+  - F / Shift+F             : Next / Previous fractal
+  - P                       : Cycle color palette
+  - T                       : Cycle tone style (Palette, Monotone, Duotone)
+  - B                       : Toggle basin / escape coloring
+  - X                       : Toggle CPU refinement mode (Web Workers)
+  - R                       : Reset camera view
+  - C                       : Copy shareable URL
+  - H                       : Hide / show control HUD panel
+
+SYSTEM REQUIREMENTS & NOTES:
+  - WebGL 1.0 support with highp float shaders (supported by all modern browsers:
+    Chrome, Edge, Firefox, Brave).
+  - Works 100% offline — zero external downloads or network access required.
+  - No build step or package installation required.
+================================================================================

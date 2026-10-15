@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WebGL Fractal Explorer</title>
+    <link rel="stylesheet" href="styles.css?v=1.3.8">
+  </head>
+  <body>
+    <main class="shell">
+      <canvas id="fractal" aria-label="Interactive 2D fractal explorer"></canvas>
+      <canvas id="deepFractal" aria-label="High precision fractal refinement"></canvas>
+      <canvas id="minimap" aria-label="Fractal overview minimap"></canvas>
+      <div id="compareDivider" class="compare-divider" hidden aria-hidden="true"></div>
+
+      <section class="hud" aria-label="Fractal controls" data-mobile-state="compact" data-mobile-tab="explore">
+        <button id="btnSheetHandle" type="button" class="sheet-handle" aria-label="Expand mobile controls" aria-expanded="false">
+          <span></span>
+        </button>
+
+        <div class="brand">
+          <span class="mark"></span>
+          <div>
+            <h1>Fractal Explorer</h1>
+            <p id="fractalName">Mandelbrot Set</p>
+          </div>
+          <button id="btnHideHud" type="button" title="Hide panel (H)" aria-label="Hide controls panel">&#x2715;</button>
+        </div>
+
+        <div class="mobile-quickbar" role="group" aria-label="Mobile quick controls">
+          <button id="btnMobilePrev" type="button" title="Previous fractal">&lt;</button>
+          <button id="btnMobileNext" type="button" title="Next fractal">&gt;</button>
+          <button id="btnMobilePalette" type="button" title="Change palette">Palette</button>
+          <button id="btnMobileReset" type="button" title="Reset view">Reset</button>
+          <button id="btnMobileControls" type="button" title="Open controls" aria-controls="mobileControlTabs" aria-expanded="false">Controls</button>
+        </div>
+
+        <div class="mobile-hints" aria-label="Input hints">
+          <span>Drag to pan</span>
+          <span>Pinch to zoom</span>
+          <span>Tap Controls for tools</span>
+        </div>
+
+        <div class="readouts">
+          <div>
+            <span>Zoom</span>
+            <strong id="zoomReadout">1×</strong>
+          </div>
+          <div>
+            <span>FPS</span>
+            <strong id="fpsReadout">60</strong>
+          </div>
+          <div>
+            <span>Eff. Iter</span>
+            <strong id="iterReadout">64</strong>
+          </div>
+          <div>
+            <span>Mode</span>
+            <strong id="modeReadout">GPU</strong>
+          </div>
+        </div>
+
+        <div id="mobileControlTabs" class="mobile-sheet-tabs" role="tablist" aria-label="Mobile control sections">
+          <button type="button" class="mobile-tab active" role="tab" aria-selected="true" data-mobile-tab-target="explore">Explore</button>
+          <button type="button" class="mobile-tab" role="tab" aria-selected="false" data-mobile-tab-target="formula">Formula</button>
+          <button type="button" class="mobile-tab" role="tab" aria-selected="false" data-mobile-tab-target="tours">Tours</button>
+          <button type="button" class="mobile-tab" role="tab" aria-selected="false" data-mobile-tab-target="inspect">Inspect</button>
+        </div>
+
+        <div class="control-grid">
+          <label class="control-fractal">
+            <span>Fractal</span>
+            <select id="fractalSelect" aria-label="Choose fractal"></select>
+          </label>
+          <div class="catalog-tools" aria-label="Catalog tools">
+            <span>Catalog</span>
+            <div class="catalog-search">
+              <input id="fractalSearch" type="search" placeholder="Search fractals" aria-label="Search fractals">
+              <button id="btnFavoriteFractal" type="button" aria-pressed="false" title="Save active fractal">Save</button>
+              <button id="btnClearFractalSearch" type="button" title="Clear fractal search">Clear</button>
+            </div>
+            <span id="fractalSearchMeta" class="catalog-meta">68 total</span>
+          </div>
+          <div class="formula-row">
+            <span>Formula</span>
+            <div class="formula-panel">
+              <textarea id="formulaDisplay" class="formula-display" rows="2" readonly spellcheck="false" aria-label="Active fractal formula"></textarea>
+              <button id="btnCopyFormula" type="button" title="Copy active formula">Copy</button>
+            </div>
+          </div>
+          <details id="composerPanel" class="composer-panel collapsible-panel" aria-label="Formula composer">
+            <summary class="panel-summary">
+              <strong>Composer</strong>
+              <span id="composerStateLabel">Default</span>
+            </summary>
+            <div class="composer-header-actions">
+              <button id="btnComposerReset" type="button" title="Reset composer">Reset</button>
+              <button id="btnComposerUse" type="button" title="Use composed formula">Use</button>
+            </div>
+            <label class="composer-row">
+              <span>Mode</span>
+              <select id="composerMode" aria-label="Choose composer start mode">
+                <option value="mandelbrot">Mandelbrot</option>
+                <option value="julia">Julia</option>
+              </select>
+            </label>
+            <div id="composerStack" class="composer-stack" aria-label="Composer operations"></div>
+            <p id="composerSummary" class="composer-summary">Mandelbrot start: z = z^2 + c</p>
+            <p class="composer-note">GPU preview only. CPU refinement and perturbation are unavailable for composed formulas.</p>
+          </details>
+          <label class="control-iterations">
+            <span>Iterations</span>
+            <div class="slider-row">
+              <input id="iterations" type="range" min="32" max="512" step="8" value="64">
+              <span id="iterValue" class="slider-value">64</span>
+            </div>
+          </label>
+          <label class="control-color">
+            <span>Color</span>
+            <input id="colorCycle" type="range" min="0" max="4" step="0.01" value="0">
+          </label>
+          <label class="control-tone">
+            <span>Tone</span>
+            <select id="colorStyle" aria-label="Choose color tone style">
+              <option value="0">Palette</option>
+              <option value="1">Monotone</option>
+              <option value="2">Duotone</option>
+            </select>
+          </label>
+          <label id="juliaRow" class="control-julia" style="display:none">
+            <span>Parameter</span>
+            <input id="juliaAngle" type="range" min="0" max="6.2832" step="0.01" value="0">
+          </label>
+          <label id="fixedJuliaRow" class="control-julia-fixed" style="display:none">
+            <span>Julia C</span>
+            <div class="julia-picker">
+              <input id="juliaReal" type="number" step="0.001" aria-label="Julia real component">
+              <input id="juliaImag" type="number" step="0.001" aria-label="Julia imaginary component">
+              <button id="btnRandomJulia" type="button" title="Randomize Julia seed">Rnd</button>
+            </div>
+          </label>
+        </div>
+
+        <div class="buttons" role="group" aria-label="Mode controls">
+          <button id="btnPrevFractal" type="button" title="Previous fractal (Shift+F)">&lt; Prev</button>
+          <button id="btnNextFractal" type="button" title="Next fractal (F)">Next &gt;</button>
+          <button id="btnPalette" type="button" title="Change palette (P)">Palette</button>
+          <button id="btnColorMode" type="button" title="Toggle basin color mode (B)">Escape</button>
+          <button id="btnRefine"  type="button" title="Toggle CPU refinement">Refine</button>
+          <button id="btnReset"   type="button" title="Reset view (R)">Reset</button>
+          <button id="btnExport"  type="button" title="Export current view as PNG">Export</button>
+          <button id="btnShare"   type="button" title="Copy link (C)">Share</button>
+        </div>
+
+        <section class="tour-panel" aria-label="Guided tours">
+          <div class="tour-header">
+            <strong>Tours</strong>
+            <span id="tourMeta">No tour selected</span>
+          </div>
+          <label class="tour-select-row">
+            <span>Route</span>
+            <select id="tourSelect" aria-label="Choose guided tour">
+              <option value="">None</option>
+            </select>
+          </label>
+          <div class="tour-card">
+            <div class="tour-card-head">
+              <strong id="tourStopTitle">Pick a tour</strong>
+              <span id="tourStopIndex">0 / 0</span>
+            </div>
+            <p id="tourStopNote" class="tour-note">Curated routes will guide you through interesting regions and keep the current stop shareable.</p>
+          </div>
+          <div class="tour-actions" role="group" aria-label="Tour controls">
+            <button id="btnTourPrev" type="button" title="Previous tour stop">&lt; Prev</button>
+            <button id="btnTourPlay" type="button" title="Play or pause tour">Play</button>
+            <button id="btnTourNext" type="button" title="Next tour stop">Next &gt;</button>
+          </div>
+        </section>
+
+        <details id="inspectorPanel" class="inspector-panel collapsible-panel" aria-label="Explorer inspector">
+          <summary class="panel-summary">
+            <strong>Inspector</strong>
+            <span id="inspectorStateLabel">Escape</span>
+          </summary>
+          <div class="inspector-grid">
+            <div>
+              <span>X</span>
+              <strong id="inspectX">0</strong>
+            </div>
+            <div>
+              <span>Y</span>
+              <strong id="inspectY">0</strong>
+            </div>
+            <div>
+              <span>Mode</span>
+              <strong id="inspectMode">Escape</strong>
+            </div>
+            <div>
+              <span>Family</span>
+              <strong id="inspectFamily">Classic</strong>
+            </div>
+            <div>
+              <span>Perturb</span>
+              <strong id="inspectPerturb">Inactive</strong>
+            </div>
+            <div>
+              <span>Ref Orbit</span>
+              <strong id="inspectOrbit">0</strong>
+            </div>
+          </div>
+          <p id="inspectSummary" class="inspector-summary">The inspector explains the active fractal, render backend, and current camera state.</p>
+        </details>
+
+        <details id="profilerPanel" class="profiler-panel collapsible-panel" aria-label="Performance profiler">
+          <summary class="panel-summary">
+            <strong>Profiler</strong>
+            <span id="profileBudget">60 FPS target</span>
+          </summary>
+          <div class="profiler-grid">
+            <div>
+              <span>Frame</span>
+              <strong id="profileFrameMs">0 ms</strong>
+            </div>
+            <div>
+              <span>Submit</span>
+              <strong id="profileSubmitMs">0 ms</strong>
+            </div>
+            <div>
+              <span>Formula</span>
+              <strong id="profileFormulaMs">0 ms</strong>
+            </div>
+            <div>
+              <span>Shader</span>
+              <strong id="profileShaderMs">0 ms</strong>
+            </div>
+            <div>
+              <span>Refine</span>
+              <strong id="profileRefineMs">Idle</strong>
+            </div>
+            <div>
+              <span>Workers</span>
+              <strong id="profileWorkers">0</strong>
+            </div>
+          </div>
+          <p id="profileHint" class="profiler-summary">Profiler data appears as you move, switch formulas, and run CPU refinement.</p>
+        </details>
+
+        <details id="comparePanel" class="compare-panel collapsible-panel" aria-label="Compare mode">
+          <summary class="panel-summary">
+            <strong>Compare</strong>
+            <span id="compareStateLabel">Off</span>
+          </summary>
+          <button id="btnCompareToggle" type="button" title="Toggle compare mode">Compare Off</button>
+          <label class="compare-row">
+            <span>Fractal</span>
+            <select id="compareFractalSelect" aria-label="Choose compare fractal"></select>
+          </label>
+          <label class="compare-row">
+            <span>Tone</span>
+            <select id="compareColorStyle" aria-label="Choose compare tone style">
+              <option value="0">Palette</option>
+              <option value="1">Monotone</option>
+              <option value="2">Duotone</option>
+            </select>
+          </label>
+          <div class="compare-actions" role="group" aria-label="Compare controls">
+            <button id="btnComparePalette" type="button" title="Cycle compare palette">Palette</button>
+            <button id="btnCompareColorMode" type="button" title="Toggle compare basin color mode">Escape</button>
+          </div>
+          <p id="compareSummary" class="compare-summary">Split-screen compare uses the same camera on both halves so formulas and coloring can be judged directly.</p>
+        </details>
+      </section>
+
+      <button id="btnShowHud" type="button" class="show-hud-btn" title="Show controls (H)" aria-label="Show controls panel" hidden>&#9776;</button>
+
+      <section class="tips" aria-label="Input hints">
+        <span>Drag to pan</span>
+        <span>Scroll to zoom</span>
+        <span>Pinch to zoom</span>
+        <span>F — next fractal</span>
+        <span>P — palette</span>
+        <span>T — tone</span>
+        <span>B — color mode</span>
+        <span>R — reset</span>
+        <span>C — share</span>
+        <span>H — hide panel</span>
+      </section>
+    </main>
+
+    <script src="fractals.js?v=1.3.8"></script>
+    <script src="app.js?v=1.3.8"></script>
+  </body>
+</html>
